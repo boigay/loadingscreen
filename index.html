@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loading</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- ===================== BACKGROUND STACK =====================
+         gradient -> video -> scrim -> vignette -> rain -> fog. Each layer is
+         its own element so the rain canvas can stay fully transparent. -->
+    <div class="stage">
+        <div class="stage-gradient"></div>
+
+        <div class="video-frame" id="videoFrame">
+            <div id="ytPlayer"></div>
+        </div>
+
+        <div class="scrim"></div>
+        <div class="vignette"></div>
+
+        <canvas class="rain" id="rainCanvas"></canvas>
+
+        <div class="fog"></div>
+    </div>
+
+    <!-- ===================== FOREGROUND ===================== -->
+    <div class="ui">
+
+        <header class="brand">
+            <img src="logo.png" alt="" class="brand-logo" id="brandLogo">
+            <div class="brand-text">
+                <div class="brand-name" id="serverName">Sinners District RP</div>
+                <div class="brand-tagline" id="serverTagline"></div>
+            </div>
+        </header>
+
+        <aside class="tip-card" id="tipCard">
+            <div class="tip-label">
+                <span class="tip-dot"></span>
+                Did you know
+            </div>
+            <div class="tip-text" id="tipText"></div>
+        </aside>
+
+        <footer class="dock">
+
+            <section class="load-block">
+                <div class="load-head">
+                    <span class="load-phase" id="loadPhase">Connecting</span>
+                    <span class="load-percent" id="loadPercent">0<i>%</i></span>
+                </div>
+                <div class="load-log" id="loadLog"></div>
+            </section>
+
+            <!-- Now playing. Hidden until something actually plays, so a
+                 misconfigured list never leaves an empty card sitting there. -->
+            <section class="player-card" id="playerCard" hidden>
+                <div class="player-head">
+                    <span class="player-label" id="playerSource">Now playing</span>
+                    <span class="eq" id="eq" aria-hidden="true">
+                        <i></i><i></i><i></i><i></i>
+                    </span>
+                </div>
+
+                <div class="player-title" id="playerTitle">Loading&hellip;</div>
+
+                <div class="player-controls">
+                    <button class="pbtn" id="prevBtn" type="button" title="Previous">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 6v12M19 6l-9 6 9 6z"/></svg>
+                    </button>
+
+                    <button class="pbtn primary" id="playBtn" type="button" title="Play / pause">
+                        <svg viewBox="0 0 24 24" class="icon-play" aria-hidden="true"><path d="M8 5l11 7-11 7z"/></svg>
+                        <svg viewBox="0 0 24 24" class="icon-pause" aria-hidden="true"><path d="M8 5v14M16 5v14"/></svg>
+                    </button>
+
+                    <button class="pbtn" id="nextBtn" type="button" title="Next">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 6v12M5 6l9 6-9 6z"/></svg>
+                    </button>
+
+                    <button class="pbtn" id="muteBtn" type="button" title="Mute">
+                        <svg viewBox="0 0 24 24" class="icon-sound" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9zM16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>
+                        <svg viewBox="0 0 24 24" class="icon-muted" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9zM17 9l4 6M21 9l-4 6"/></svg>
+                    </button>
+
+                    <input class="volume" id="volume" type="range" min="0" max="100" step="1" value="30" title="Volume">
+
+                    <span class="track-count" id="trackCount"></span>
+                </div>
+            </section>
+        </footer>
+
+        <div class="progress-rail">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+    </div>
+
+    <!-- Shown only when autoplay came up muted, which the browser can refuse
+         without warning. One obvious click turns the sound on. -->
+    <button class="enable-sound" id="enableSound" type="button" hidden>
+        <span class="enable-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9zM16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>
+        </span>
+        <span>Click to enable music</span>
+    </button>
+
+    <!-- Setup problems only - an empty or unusable music config. -->
+    <div class="setup-notice" id="setupNotice" hidden>
+        <strong id="setupTitle"></strong>
+        <span id="setupBody"></span>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="rain.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
