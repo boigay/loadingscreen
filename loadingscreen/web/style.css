@@ -1,0 +1,665 @@
+/* =============================================================================
+   LOADING SCREEN
+
+   --accent is written by script.js from config.js, so changing one hex in the
+   config re-themes everything below.
+   ============================================================================= */
+
+:root {
+    --accent: #F43F5E;
+    --accent-bright: #faa9b7;
+    --accent-soft: rgba(244, 63, 94, 0.16);
+    --accent-line: rgba(244, 63, 94, 0.34);
+
+    --ink: #F4F5F7;
+    --ink-dim: #9aa2ad;
+    --ink-faint: #616a76;
+
+    --bg: #08090b;
+    --glass: rgba(14, 16, 20, 0.52);
+    --glass-line: rgba(255, 255, 255, 0.09);
+
+    --video-opacity: 0.55;
+    --video-zoom: 1.04;
+
+    --font: 'Inter', 'Poppins', 'Segoe UI', system-ui, sans-serif;
+    --mono: 'JetBrains Mono', 'Consolas', ui-monospace, monospace;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font);
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    cursor: default;
+    user-select: none;
+}
+
+/* The whole screen fades out together once the game is ready. */
+body.finished .ui,
+body.finished .stage,
+body.finished .enable-sound {
+    opacity: 0;
+    transition: opacity 1.4s ease 0.2s;
+}
+
+/* =====================================================================
+   BACKGROUND STACK
+   ===================================================================== */
+
+.stage {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+}
+
+/* Always present, and the whole background when no video is playing. Slow
+   drifting gradients so the screen still has some life on its own. */
+.stage-gradient {
+    position: absolute;
+    inset: -20%;
+    background:
+        radial-gradient(45% 55% at 22% 28%, rgba(255, 255, 255, 0.05) 0%, transparent 60%),
+        radial-gradient(40% 50% at 78% 70%, var(--accent-soft) 0%, transparent 62%),
+        radial-gradient(70% 70% at 50% 50%, #14171d 0%, #08090b 72%);
+    animation: drift 26s ease-in-out infinite alternate;
+}
+
+@keyframes drift {
+    from { transform: translate3d(-1.5%, -1%, 0) scale(1.04); }
+    to   { transform: translate3d(1.5%, 1.5%, 0) scale(1.1); }
+}
+
+/* 16:9 blown up until it covers whatever aspect the game window is, which is
+   how a background video fills the screen without letterboxing or squashing. */
+.video-frame {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100vw;
+    height: 56.25vw;
+    min-width: 177.78vh;
+    min-height: 100vh;
+    transform: translate(-50%, -50%) scale(var(--video-zoom));
+    opacity: 0;
+    transition: opacity 1.6s ease;
+    pointer-events: none;
+}
+
+.video-frame.visible {
+    opacity: var(--video-opacity);
+}
+
+/* Audio-only mode still needs the player in the DOM, just never seen. */
+.video-frame.audio-only {
+    width: 1px;
+    height: 1px;
+    min-width: 0;
+    min-height: 0;
+    opacity: 0;
+    top: -100px;
+    left: -100px;
+}
+
+.video-frame iframe,
+.video-frame > div {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
+}
+
+/* Keeps text legible no matter how bright the background gets. */
+.scrim {
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(to top, rgba(6, 7, 9, 0.94) 0%, rgba(6, 7, 9, 0.35) 34%, rgba(6, 7, 9, 0.18) 60%, rgba(6, 7, 9, 0.62) 100%),
+        linear-gradient(to right, rgba(6, 7, 9, 0.72) 0%, transparent 42%);
+}
+
+.vignette {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 42%, rgba(0, 0, 0, 0.72) 100%);
+}
+
+.rain {
+    position: absolute;
+    inset: 0;
+    display: block;
+}
+
+/* Catches the rain at the bottom of the screen so the dots dissolve into the
+   dock instead of clipping off an edge. */
+.fog {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 34vh;
+    background: linear-gradient(to top, rgba(6, 7, 9, 0.85) 0%, rgba(6, 7, 9, 0.28) 45%, transparent 100%);
+}
+
+/* =====================================================================
+   FOREGROUND
+   ===================================================================== */
+
+.ui {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto 1fr auto;
+    grid-template-areas:
+        "brand tip"
+        ".     .  "
+        "dock  dock";
+    padding: 46px 52px 40px;
+}
+
+/* ---------------- brand ---------------- */
+
+.brand {
+    grid-area: brand;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.brand-logo {
+    width: 58px;
+    height: 58px;
+    object-fit: contain;
+    filter: drop-shadow(0 4px 18px rgba(0, 0, 0, 0.6));
+}
+
+.brand-name {
+    font-size: 27px;
+    font-weight: 700;
+    letter-spacing: 3.5px;
+    text-transform: uppercase;
+    line-height: 1.15;
+    text-shadow: 0 2px 22px rgba(0, 0, 0, 0.65);
+}
+
+.brand-tagline {
+    font-size: 13px;
+    font-weight: 400;
+    letter-spacing: 1.6px;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+}
+
+.brand-tagline:empty {
+    display: none;
+}
+
+/* ---------------- tips ---------------- */
+
+.tip-card {
+    grid-area: tip;
+    justify-self: end;
+    max-width: 330px;
+    padding: 16px 20px;
+    border: 1px solid var(--glass-line);
+    border-radius: 14px;
+    background: var(--glass);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.12s both;
+}
+
+.tip-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 2.4px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 7px;
+}
+
+.tip-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent);
+    animation: pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: 0.35; transform: scale(0.75); }
+}
+
+.tip-text {
+    font-size: 13.5px;
+    color: var(--ink);
+    opacity: 1;
+    transition: opacity 0.45s ease;
+    min-height: 20px;
+}
+
+.tip-text.fading {
+    opacity: 0;
+}
+
+/* ---------------- bottom dock ---------------- */
+
+.dock {
+    grid-area: dock;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 40px;
+    animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.22s both;
+}
+
+.load-block {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.load-head {
+    display: flex;
+    align-items: baseline;
+    gap: 18px;
+}
+
+.load-phase {
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: 0.4px;
+    color: var(--ink);
+}
+
+.load-percent {
+    font-family: var(--mono);
+    font-size: 40px;
+    font-weight: 600;
+    line-height: 1;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 34px var(--accent-soft);
+}
+
+.load-percent i {
+    font-style: normal;
+    font-size: 17px;
+    opacity: 0.55;
+    margin-left: 2px;
+}
+
+/* The real log line the game emits while it streams. Fixed height so the dock
+   never jumps as lines of different lengths come through. */
+.load-log {
+    margin-top: 6px;
+    height: 17px;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--ink-faint);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 62ch;
+}
+
+/* ---------------- now playing ---------------- */
+
+.player-card {
+    flex: 0 0 auto;
+    width: 358px;
+    padding: 15px 18px 16px;
+    border: 1px solid var(--glass-line);
+    border-radius: 16px;
+    background: var(--glass);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.45);
+}
+
+.player-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.player-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 2.4px;
+    text-transform: uppercase;
+    color: var(--accent);
+}
+
+.eq {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 14px;
+}
+
+.eq i {
+    width: 3px;
+    height: 100%;
+    border-radius: 2px;
+    background: var(--accent);
+    transform-origin: bottom;
+    animation: bounce 1s ease-in-out infinite;
+    animation-play-state: paused;
+    transform: scaleY(0.25);
+    opacity: 0.55;
+}
+
+.eq.playing i {
+    animation-play-state: running;
+    opacity: 1;
+}
+
+.eq i:nth-child(2) { animation-delay: 0.18s; }
+.eq i:nth-child(3) { animation-delay: 0.36s; }
+.eq i:nth-child(4) { animation-delay: 0.09s; }
+
+@keyframes bounce {
+    0%, 100% { transform: scaleY(0.28); }
+    50%      { transform: scaleY(1); }
+}
+
+.player-title {
+    margin: 7px 0 13px;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.player-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pbtn {
+    flex: 0 0 auto;
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--ink-dim);
+    cursor: pointer;
+    transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease, transform 0.12s ease;
+}
+
+.pbtn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: var(--ink);
+}
+
+.pbtn:active {
+    transform: scale(0.92);
+}
+
+.pbtn.primary {
+    width: 34px;
+    height: 34px;
+    background: var(--accent-soft);
+    border-color: var(--accent-line);
+    color: var(--accent);
+}
+
+.pbtn.primary:hover {
+    background: var(--accent);
+    color: #0b0c0e;
+    border-color: var(--accent);
+}
+
+.pbtn[hidden] {
+    display: none;
+}
+
+.pbtn svg {
+    width: 15px;
+    height: 15px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.9;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* Play/pause and sound/muted each hold both icons and swap by state class. */
+.pbtn .icon-play  { fill: currentColor; stroke: none; }
+#playBtn .icon-pause,
+#playBtn.playing .icon-play { display: none; }
+#playBtn.playing .icon-pause { display: block; }
+
+#muteBtn .icon-muted,
+#muteBtn.muted .icon-sound { display: none; }
+#muteBtn.muted .icon-muted { display: block; }
+#muteBtn.muted { color: var(--accent); }
+
+.volume {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 4px;
+    margin: 0 2px;
+    appearance: none;
+    -webkit-appearance: none;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.14);
+    cursor: pointer;
+}
+
+.volume::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 0;
+    box-shadow: 0 0 9px var(--accent-soft);
+    cursor: pointer;
+}
+
+.track-count {
+    flex: 0 0 auto;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--ink-faint);
+    font-variant-numeric: tabular-nums;
+}
+
+/* ---------------- click to enable music ---------------- */
+
+.enable-sound {
+    position: fixed;
+    left: 50%;
+    bottom: 152px;
+    transform: translateX(-50%);
+    z-index: 40;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 13px 24px 13px 18px;
+    border: 1px solid var(--accent-line);
+    border-radius: 999px;
+    background: rgba(14, 16, 20, 0.82);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.5), 0 0 0 0 var(--accent-soft);
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 1.6px;
+    text-transform: uppercase;
+    cursor: pointer;
+    animation: rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both, halo 2.6s ease-in-out 0.6s infinite;
+    transition: background 0.18s ease, border-color 0.18s ease, transform 0.12s ease;
+}
+
+.enable-sound:hover {
+    background: rgba(24, 27, 33, 0.92);
+    border-color: var(--accent);
+}
+
+.enable-sound:active {
+    transform: translateX(-50%) scale(0.97);
+}
+
+.enable-icon {
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+
+.enable-icon svg {
+    width: 14px;
+    height: 14px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.9;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* Pulsing ring rather than a bouncing button - it has to be noticeable
+   without dragging the eye off the loading bar. */
+@keyframes halo {
+    0%, 100% { box-shadow: 0 14px 40px rgba(0, 0, 0, 0.5), 0 0 0 0 var(--accent-soft); }
+    50%      { box-shadow: 0 14px 40px rgba(0, 0, 0, 0.5), 0 0 0 12px rgba(0, 0, 0, 0); }
+}
+
+/* ---------------- progress ---------------- */
+
+.progress-rail {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.07);
+    z-index: 20;
+}
+
+.progress-fill {
+    position: relative;
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-bright));
+    box-shadow: 0 0 18px var(--accent), 0 0 44px var(--accent-soft);
+    transition: width 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* A bright cap on the leading edge, so the bar reads as moving even when the
+   game sits on the same percentage for a while. Only once there is a bar to cap -
+   at 0% it would just be a glowing dot in the corner. */
+.progress-fill.started::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: -2px;
+    width: 3px;
+    height: 7px;
+    border-radius: 2px;
+    background: #fff;
+    box-shadow: 0 0 12px #fff;
+    opacity: 0.9;
+}
+
+/* ---------------- setup notice ---------------- */
+
+.setup-notice {
+    position: fixed;
+    left: 52px;
+    bottom: 132px;
+    z-index: 30;
+    max-width: 440px;
+    padding: 13px 17px;
+    border: 1px solid var(--accent-line);
+    border-left-width: 3px;
+    border-radius: 10px;
+    background: rgba(10, 16, 24, 0.82);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: var(--ink-dim);
+    animation: rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.5s both;
+}
+
+.setup-notice strong {
+    display: block;
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+.setup-notice code {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--ink);
+    background: rgba(255, 255, 255, 0.07);
+    padding: 1px 5px;
+    border-radius: 4px;
+}
+
+/* ---------------- shared ---------------- */
+
+@keyframes rise {
+    from { opacity: 0; transform: translateY(22px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+[hidden] {
+    display: none !important;
+}
+
+/* Tight windowed resolutions - keep the dock from crushing the log line. */
+@media (max-width: 1100px) {
+    .ui { padding: 32px 34px 30px; }
+    .player-card { width: 300px; }
+    .load-percent { font-size: 32px; }
+    .tip-card { max-width: 260px; }
+}
+
+@media (max-width: 860px) {
+    .dock { flex-direction: column; align-items: stretch; gap: 20px; }
+    .player-card { width: 100%; }
+    .tip-card { display: none; }
+    .enable-sound { bottom: auto; top: 96px; }
+}
